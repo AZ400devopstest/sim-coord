@@ -1,5 +1,4 @@
-sudo apt install curl
-sudo apt install zip
+sudo apt install curl zip
 
 Install tool sdkman useful for maintaining java versions:
 ============================================================
