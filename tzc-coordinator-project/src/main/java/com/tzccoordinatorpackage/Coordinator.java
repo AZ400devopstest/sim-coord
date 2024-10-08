@@ -3,6 +3,7 @@ package com.tzccoordinatorpackage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.io.FileInputStream;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -39,7 +40,15 @@ public class Coordinator {
         System.out.println("Coordinator started");
 
         // Load the configuration from properties file
-        loadConfiguration();
+        String configFilePath = null;
+        if (args.length > 0) {
+            configFilePath = args[0];
+            System.out.println("Using external configuration file: " + configFilePath);
+        } else {
+            System.out.println("No external configuration file provided. Using default config.properties.");
+        }
+
+        loadConfiguration(configFilePath);
 
         // Establish connections to IDRIS, PIXI and SICK-TIC servers
         connectToServers();
@@ -66,17 +75,24 @@ public class Coordinator {
         }, 0, schedulePeriod, TimeUnit.SECONDS);
     }
 
-    /**
-     * Loads configuration from the properties file.
-     */
-    private static void loadConfiguration() {
-        try (InputStream input = Coordinator.class.getClassLoader().getResourceAsStream("config.properties")) {
+/**
+ * Loads configuration from the properties file.
+ * If configFilePath is provided, load from the external file.
+ * Otherwise, load from the packaged config.properties.
+ * @param configFilePath Path to the external config.properties file.
+ */
+private static void loadConfiguration(String configFilePath) {
+        Properties prop = new Properties();
+        try (InputStream input = (configFilePath != null) ?
+                new FileInputStream(configFilePath) :
+                Coordinator.class.getClassLoader().getResourceAsStream("config.properties")) {
+
             if (input == null) {
-                System.out.println("Sorry, unable to find config.properties");
+                System.out.println("Sorry, unable to find " +
+                    (configFilePath != null ? configFilePath : "config.properties"));
                 return;
             }
 
-            Properties prop = new Properties();
             // Load the properties file
             prop.load(input);
 
