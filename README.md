@@ -29,11 +29,13 @@ mvn -v
 sdk default maven <version>
 
 For example:
+=============
 sdk default maven 3.8.7
 
 to build and package:
 ======================
 cd tzc-coordinator-project
+
 mvn clean package
 
 to execute the coordinator: (with default config.properties which is part of jar)
