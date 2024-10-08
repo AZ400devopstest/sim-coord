@@ -45,4 +45,8 @@ java -jar target/tzc-coordinator-new-project-1.0.SNAPSHOT.jar
 
 to execute the coordinator using config.properties at custom location
 =====================================================================
+java -jar target/tzc-coordinator-new-project-1.0.SNAPSHOT.jar <custom location>
+
+for example:
+================
 java -jar target/tzc-coordinator-new-project-1.0.SNAPSHOT.jar ~/simulator-coordinator/config.properties
