@@ -18,6 +18,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigException;
+
 public class Coordinator {
 
     private static String csvFilePath;
@@ -82,32 +86,31 @@ public class Coordinator {
  * @param configFilePath Path to the external config.properties file.
  */
 private static void loadConfiguration(String configFilePath) {
-        Properties prop = new Properties();
-        try (InputStream input = (configFilePath != null) ?
-                new FileInputStream(configFilePath) :
-                Coordinator.class.getClassLoader().getResourceAsStream("config.properties")) {
+            Config config=ConfigFactory.parseResources("config.properties");
 
-            if (input == null) {
-                System.out.println("Sorry, unable to find " +
-                    (configFilePath != null ? configFilePath : "config.properties"));
-                return;
+            try{
+            if (configFilePath != null) {
+                config = ConfigFactory.parseFile(new java.io.File(configFilePath));
+                System.out.println("Using external configuration file: " + configFilePath);
+            } else {
+                config = ConfigFactory.load(); // Load from default application.conf
+                System.out.println("No external configuration file provided. Using default config.");
             }
 
-            // Load the properties file
-            prop.load(input);
+            // Load the configuration parameters
+            csvFilePath = config.getString("csvFilePath");
+            schedulePeriod = config.getInt("schedulePeriod");
 
-            // Retrieve the values from the properties file
-            csvFilePath = prop.getProperty("csvFilePath");
-            schedulePeriod = Integer.parseInt(prop.getProperty("schedulePeriod"));
-            
-            // Load server details for PIXI and SICK-TIC
-            idrisServerHost = prop.getProperty("IdrisServerHost");
-            idrisServerPort = Integer.parseInt(prop.getProperty("IdrisServerPort"));
-            pixiServerHost = prop.getProperty("PixiServerHost");
-            pixiServerPort = Integer.parseInt(prop.getProperty("PixiServerPort"));
-            sickTicServerHost = prop.getProperty("SickTicServerHost");
-            sickTicServerPort = Integer.parseInt(prop.getProperty("SickTicServerPort"));
+            idrisServerHost = config.getString("IdrisServerHost");
+            idrisServerPort = config.getInt("IdrisServerPort");
 
+            pixiServerHost = config.getString("PixiServerHost");
+            pixiServerPort = config.getInt("PixiServerPort");
+
+            sickTicServerHost = config.getString("SickTicServerHost");
+            sickTicServerPort = config.getInt("SickTicServerPort");
+
+            // Print the loaded configuration
             System.out.println("Loaded configuration: ");
             System.out.println("CSV File Path: " + csvFilePath);
             System.out.println("Schedule Period: " + schedulePeriod + " seconds");
@@ -115,7 +118,8 @@ private static void loadConfiguration(String configFilePath) {
             System.out.println("PIXI Server: " + pixiServerHost + " on port " + pixiServerPort);
             System.out.println("SICK-TIC Server: " + sickTicServerHost + " on port " + sickTicServerPort);
 
-        } catch (IOException ex) {
+        } catch (ConfigException ex) {
+            System.err.println("Configuration error: "+ ex.getMessage());
             ex.printStackTrace();
         }
     }
