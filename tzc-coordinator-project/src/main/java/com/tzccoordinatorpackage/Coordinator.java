@@ -31,14 +31,18 @@ public class Coordinator {
     private static String idrisServerHost;
     private static int idrisServerPort;
     private static String pixiServerHost;
+    private static String tagReaderServerHost;
+
     private static int pixiServerPort;
     private static String sickTicServerHost;
     private static int sickTicServerPort;
-    
+    private static int tagReaderServerPort;
+
     // Sockets for PIXI and SICK-TIC servers
     private static Socket idrisSocket;
     private static Socket pixiSocket;
     private static Socket sickTicSocket;
+    private static Socket tagReaderSocket;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -87,6 +91,7 @@ public class Coordinator {
                     sendDataToServer(idrisSocket, record.getJsonObject().toString(), "IDRIS");
                     sendDataToServer(pixiSocket, record.getJsonObject().toString(), "PIXI");
                     sendDataToServer(sickTicSocket, record.getJsonObject().toString(), "SICK-TIC");
+                    sendDataToServer(tagReaderSocket, record.getJsonObject().toString(), "TAGREADER");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -105,7 +110,7 @@ public class Coordinator {
  * @param configFilePath Path to the external config.properties file.
  */
 private static void loadConfiguration(String configFilePath) {
-            Config config=ConfigFactory.parseResources("config.properties");
+            Config config;
 
             try{
             if (configFilePath != null) {
@@ -128,6 +133,9 @@ private static void loadConfiguration(String configFilePath) {
 
             sickTicServerHost = config.getString("SickTicServerHost");
             sickTicServerPort = config.getInt("SickTicServerPort");
+
+            tagReaderServerHost = config.getString("TagReaderServerHost");
+            tagReaderServerPort = config.getInt("STagReaderServerPort");
 
             // Print the loaded configuration
             System.out.println("Loaded configuration: ");
@@ -159,6 +167,9 @@ private static void loadConfiguration(String configFilePath) {
             // Connect to SICK-TIC server
             sickTicSocket = new Socket(sickTicServerHost, sickTicServerPort);
             System.out.println("Connected to SICK-TIC server: " + sickTicServerHost + " on port " + sickTicServerPort);
+
+            tagReaderSocket = new Socket(tagReaderServerHost, tagReaderServerPort);
+            System.out.println("Connected to TAGREADER server: " + tagReaderServerHost + " on port " + tagReaderServerPort);
 
         } catch (IOException e) {
             e.printStackTrace();
