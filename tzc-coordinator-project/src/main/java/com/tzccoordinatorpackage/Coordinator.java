@@ -40,6 +40,8 @@ public class Coordinator {
     private static Socket pixiSocket;
     private static Socket sickTicSocket;
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     public static void main(String[] args) {
         System.out.println("Coordinator started");
 
@@ -57,26 +59,43 @@ public class Coordinator {
         // Establish connections to IDRIS, PIXI and SICK-TIC servers
         connectToServers();
 
+        // Process CSV and schedule tasks
+        List<Record> records = null;
+        try {
+            records = processCSV(csvFilePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
         // Create a scheduled executor to handle periodic tasks
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10); //Adjust pool size as needed
 
-        // Schedule the CSV processing task
-        executor.scheduleAtFixedRate(() -> {
-            try {
-                // Process CSV and convert to JSON
-                List<ObjectNode> records = processCSV(csvFilePath);
+        // Schedule each record based on TRANSACTION_DATE
+        for (Record record : records) {
+            long transactionDate = record.getTransactionDate();
 
-                // Send JSON data to PIXI and SICK-TIC servers
-                for (ObjectNode jsonRecord : records) {
-                    sendDataToServer(idrisSocket, jsonRecord.toString(), "IDRIS");
-                    sendDataToServer(pixiSocket, jsonRecord.toString(), "PIXI");
-                    sendDataToServer(sickTicSocket, jsonRecord.toString(), "SICK-TIC");
+        if (transactionDate != -1) //incase of exception while reading transaction_date this is -1
+        {
+            // Calculate delay in seconds (assuming TRANSACTION_DATE is in milliseconds)
+            long delay = transactionDate / 1000; // Adjust based on actual unit
+
+            scheduler.schedule(() -> {
+                try {
+                    System.out.println("Sending JSON object: " + record.getJsonObject().toString() +" with delay: "+delay);
+                    // Send JSON data to PIXI and SICK-TIC servers
+                    sendDataToServer(idrisSocket, record.getJsonObject().toString(), "IDRIS");
+                    sendDataToServer(pixiSocket, record.getJsonObject().toString(), "PIXI");
+                    sendDataToServer(sickTicSocket, record.getJsonObject().toString(), "SICK-TIC");
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            }, delay, TimeUnit.SECONDS); // Adjust TimeUnit based on TRANSACTION_DATE's unit
+        }
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }, 0, schedulePeriod, TimeUnit.SECONDS);
+        } //all records processed
+        // Optionally, shutdown the scheduler after all tasks are completed
+        scheduler.shutdown();
     }
 
 /**
@@ -152,14 +171,14 @@ private static void loadConfiguration(String configFilePath) {
      * @return A list of JSON records.
      * @throws IOException if the file reading fails.
      */
-    private static List<ObjectNode> processCSV(String filePath) throws IOException {
-        List<ObjectNode> jsonRecords = new ArrayList<>();
+    private static List<Record> processCSV(String filePath) throws IOException {
+        List<Record> records = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             String[] headers = reader.readLine().split(","); // Read the CSV headers
-
+            long transactionDate=-1;
             // Read each row in the CSV file
             while ((line = reader.readLine()) != null) {
                 System.out.println("Processing line : " +  line);
@@ -169,14 +188,24 @@ private static void loadConfiguration(String configFilePath) {
                 // Map each CSV column to its corresponding value
                 for (int i = 0; i < headers.length; i++) {
                     jsonObject.put(headers[i], values[i]);
-                }
 
-                jsonRecords.add(jsonObject);
+                    // Check if the current header is "transaction_date" and store the value
+                    if (headers[i].equalsIgnoreCase("TRANSACTION_DATE")) {
+                        try {
+                            transactionDate = Long.parseLong(values[i].trim());
+                        } catch (NumberFormatException e) {
+                            System.err.println("Invalid TRANSACTION_DATE in line: " + line);
+                            continue; // Skip this record
+                        }
+                    }
+                }
+            // Create a Record object containing transactionDate and jsonObject
+            Record record = new Record(transactionDate, jsonObject);
+            records.add(record);
             }
         }
-
-        return jsonRecords;
-    }
+        return records;
+  }
 
     /**
      * Sends JSON data to the specified server (either PIXI or SICK-TIC).
