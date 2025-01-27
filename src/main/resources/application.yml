@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: tzc-simulator-coordinator
+
+scheduling:
+  default:
+    cron: 0 */1 * * * ?
+
+server:
+  port: 4242
+  servlet:
+    context-path: /simulator
+
+simulators:
+  pixi:
+    files:
+      path: 'c:\dev\tmp\'
