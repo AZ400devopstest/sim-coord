@@ -15,18 +15,51 @@ public record VehicleData (
         String speed,
         String direction,
         String plateText,
-        String plateReadConfidence, // why is this named 'plate_readconfidence' in the sample file?
-        String plateNationality, // why is this named 'plate_nationality' in the sample file?
-        String platePlateFinderConfidence, // why is this named 'plate_platefinderconfidence' in the sample file, and what does that mean?
+        String plateReadConfidence,
+        String plateNationality,
+        String platePlateFinderConfidence,
         String plateXpos,
         String plateWidth,
         String plateYpos,
         String plateHeight,
-        String tagId, // what is the format of this data?
-        String tid, // what is this?  and what is the format?
+        String tagId,
+        String tid,
         String tagType,
-        String antenna, // what is this?
-        String rssi, // what is this?
-        String txPower, // what is this?
-        String userData // what is this?
-        ) {}
+        String antenna,
+        String rssi,
+        String txPower,
+        String userData
+) {
+        @Override
+        public String toString() {
+                StringBuilder sb = new StringBuilder();
+                sb.append(facilityId).append(",")
+                  .append(tollPoint).append(",")
+                        .append(lane).append(",")
+                        .append(vehicleId).append(",")
+                        .append(vehicleClass).append(",")
+                        .append(confidence).append(",")
+                        .append(length).append(",")
+                        .append(width).append(",")
+                        .append(height).append(",")
+                        .append(axleCount).append(",")
+                        .append(speed).append(",")
+                        .append(direction).append(",")
+                        .append(plateText).append(",")
+                        .append(plateReadConfidence).append(",")
+                        .append(plateNationality).append(",")
+                        .append(platePlateFinderConfidence).append(",")
+                        .append(plateXpos).append(",")
+                        .append(plateWidth).append(",")
+                        .append(plateYpos).append(",")
+                        .append(plateHeight).append(",")
+                        .append(tagId).append(",")
+                        .append(tid).append(",")
+                        .append(tagType).append(",")
+                        .append(antenna).append(",")
+                        .append(rssi).append(",")
+                        .append(txPower).append(",")
+                        .append(userData);
+                return sb.toString();
+        }
+}

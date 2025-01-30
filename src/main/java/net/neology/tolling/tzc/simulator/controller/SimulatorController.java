@@ -72,4 +72,14 @@ public class SimulatorController {
         webSocketServerHandler.sendMessagesNow();
         webSocketServerHandler.queueMessagesFromFile(fileName);
     }
+
+    @PutMapping(
+            path = "",
+            consumes = {MediaType.APPLICATION_JSON_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE}
+    )
+    void updateFilePath(@RequestBody String newFilePath) {
+        log.info("Got request to update file path..");
+        webSocketServerHandler.setFilePath(newFilePath);
+    }
 }

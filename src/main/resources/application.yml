@@ -13,5 +13,6 @@ server:
 
 simulators:
   pixi:
+    autostart: true
     files:
       path: 'c:\dev\tmp\'
