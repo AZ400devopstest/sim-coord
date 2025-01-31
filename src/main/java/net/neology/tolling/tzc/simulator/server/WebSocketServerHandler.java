@@ -29,9 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -84,7 +82,6 @@ public class WebSocketServerHandler extends TextWebSocketHandler {
 //    @Scheduled(cron = "${scheduling.default.cron}")
 //    void sendScheduledMessages() {
 //        log.info("Scheduled sendMessages...");
-//        sendMessages();
 //        sendMessages();
 //    }
 
@@ -146,7 +143,6 @@ public class WebSocketServerHandler extends TextWebSocketHandler {
         }
     }
 
-    // TODO: Start using this method
     private File locateFile(String fileName) {
         return loadFileFromFileSystem(filePath + fileName)
                 .or(() -> loadFileFromClasspath(fileName))

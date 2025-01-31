@@ -6,6 +6,7 @@ TODO:
    * Could handle this via definition of sub-protocols -- one for each 'type' of simulator 
 4. Storage?  Seeding in-memory DB at startup?
 5. Dockerize -- add some external data storage, replace in-memory DB with something else?
+6. async and scheduled exception management -- implement exception handlers
 
 USAGE:
 Build and run the jar, then connect to it with a websocket client.

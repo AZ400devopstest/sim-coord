@@ -16,3 +16,7 @@ simulators:
     autostart: true
     files:
       path: 'c:\dev\tmp\'
+      name: 'VehicleSimulationData.csv'
+    server:
+      host: localhost
+      port: 2424

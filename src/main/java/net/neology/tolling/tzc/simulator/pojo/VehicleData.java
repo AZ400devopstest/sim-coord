@@ -1,5 +1,8 @@
 package net.neology.tolling.tzc.simulator.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+//@JsonIgnoreProperties("timeDelay")
 public record VehicleData (
         String timeDelay,
         String facilityId,
@@ -29,37 +32,4 @@ public record VehicleData (
         String rssi,
         String txPower,
         String userData
-) {
-        @Override
-        public String toString() {
-                StringBuilder sb = new StringBuilder();
-                sb.append(facilityId).append(",")
-                  .append(tollPoint).append(",")
-                        .append(lane).append(",")
-                        .append(vehicleId).append(",")
-                        .append(vehicleClass).append(",")
-                        .append(confidence).append(",")
-                        .append(length).append(",")
-                        .append(width).append(",")
-                        .append(height).append(",")
-                        .append(axleCount).append(",")
-                        .append(speed).append(",")
-                        .append(direction).append(",")
-                        .append(plateText).append(",")
-                        .append(plateReadConfidence).append(",")
-                        .append(plateNationality).append(",")
-                        .append(platePlateFinderConfidence).append(",")
-                        .append(plateXpos).append(",")
-                        .append(plateWidth).append(",")
-                        .append(plateYpos).append(",")
-                        .append(plateHeight).append(",")
-                        .append(tagId).append(",")
-                        .append(tid).append(",")
-                        .append(tagType).append(",")
-                        .append(antenna).append(",")
-                        .append(rssi).append(",")
-                        .append(txPower).append(",")
-                        .append(userData);
-                return sb.toString();
-        }
-}
+) {}

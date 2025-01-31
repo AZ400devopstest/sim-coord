@@ -3,7 +3,7 @@ package net.neology.tolling.tzc.simulator.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.neology.tolling.tzc.simulator.pojo.VehicleData;
-import net.neology.tolling.tzc.simulator.server.WebSocketServerHandler;
+import net.neology.tolling.tzc.simulator.service.CoordinatorService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,14 +19,14 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/coordinator")
-public class SimulatorController {
+public class CoordinatorController {
 
-    private final WebSocketServerHandler webSocketServerHandler;
+    private final CoordinatorService coordinatorService;
 
     @GetMapping(produces = {MediaType.APPLICATION_JSON_VALUE})
     Integer checkQueueSize() {
         log.info("Got request to check size of queue..");
-        return webSocketServerHandler.checkQueueSize();
+        return coordinatorService.checkQueueSize();
     }
 
     @PostMapping(
@@ -35,7 +35,7 @@ public class SimulatorController {
     )
     void loadFromFile(@PathVariable String fileName) {
         log.info("Got request to load from file..");
-        webSocketServerHandler.queueMessagesFromFile(fileName);
+        coordinatorService.queueMessagesFromFile(fileName);
     }
 
     @PostMapping(
@@ -44,7 +44,7 @@ public class SimulatorController {
     )
     void save(@RequestBody VehicleData vehicleData) {
         log.info("Got request to save..");
-        webSocketServerHandler.queueMessages(List.of(vehicleData));
+        coordinatorService.queueMessages(List.of(vehicleData));
     }
 
     @PostMapping(
@@ -54,13 +54,13 @@ public class SimulatorController {
     )
     void saveAll(@RequestBody List<VehicleData> vehicleDataList) {
         log.info("Got request to saveAll..");
-        webSocketServerHandler.queueMessages(vehicleDataList);
+        coordinatorService.queueMessages(vehicleDataList);
     }
 
     @PutMapping(produces = {MediaType.APPLICATION_JSON_VALUE})
     void sendNow() {
         log.info("Got request to broadcast all queued messages now..");
-        webSocketServerHandler.sendMessagesNow();
+        coordinatorService.sendMessagesNow();
     }
 
     @PutMapping(
@@ -69,8 +69,8 @@ public class SimulatorController {
     )
     void sendNowAndReload(@PathVariable String fileName) {
         log.info("Got request to broadcast and reload queued messages now..");
-        webSocketServerHandler.sendMessagesNow();
-        webSocketServerHandler.queueMessagesFromFile(fileName);
+        coordinatorService.sendMessagesNow();
+        coordinatorService.queueMessagesFromFile(fileName);
     }
 
     @PutMapping(
@@ -80,6 +80,6 @@ public class SimulatorController {
     )
     void updateFilePath(@RequestBody String newFilePath) {
         log.info("Got request to update file path..");
-        webSocketServerHandler.setFilePath(newFilePath);
+        coordinatorService.setFilePath(newFilePath);
     }
 }
