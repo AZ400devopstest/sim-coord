@@ -15,7 +15,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 
@@ -60,7 +59,6 @@ public class CoordinatorService {
         this.vehicleDataRepository = new InMemoryVehicleDataRepository();
     }
 
-    // TODO: Call from controller GET method
     public Integer checkQueueSize() {
         return vehicleDataRepository.currentSize();
     }

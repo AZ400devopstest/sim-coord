@@ -9,11 +9,11 @@ scheduling:
 server:
   port: 4242
   servlet:
-    context-path: /simulator
+    context-path: /simulators
 
 simulators:
   pixi:
-    autostart: true
+    autostart: false
     files:
       path: 'c:\dev\tmp\'
       name: 'VehicleSimulationData.csv'

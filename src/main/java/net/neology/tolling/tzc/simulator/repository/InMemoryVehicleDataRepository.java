@@ -15,7 +15,9 @@ public class InMemoryVehicleDataRepository implements VehicleDataRepository {
 
     @Override
     public List<VehicleData> findAll() {
-        return vehicleDataList.stream().toList();
+        List<VehicleData> result = vehicleDataList.stream().toList();
+        vehicleDataList.clear();
+        return result;
     }
 
     @Override

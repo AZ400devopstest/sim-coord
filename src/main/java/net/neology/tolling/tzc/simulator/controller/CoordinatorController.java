@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -74,11 +75,10 @@ public class CoordinatorController {
     }
 
     @PutMapping(
-            path = "",
-            consumes = {MediaType.APPLICATION_JSON_VALUE},
-            produces = {MediaType.APPLICATION_JSON_VALUE}
+            path = "/newFilePath",
+            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE}
     )
-    void updateFilePath(@RequestBody String newFilePath) {
+    void updateFilePath(@RequestParam String newFilePath) {
         log.info("Got request to update file path..");
         coordinatorService.setFilePath(newFilePath);
     }
