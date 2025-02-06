@@ -1,0 +1,93 @@
+name: build and deploy-TZC-Simulator-Coordinator-eks
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  build-and-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Configure AWS credentials
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region us-east-2
+
+      - name: Log in to AWS ECR
+        run: |
+            aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator
+          
+      - name: Check for latest image
+        id: check_latest
+        run: |
+          LATEST_IMAGE_EXISTS=$(aws ecr describe-images --repository-name neotzc/simulator-coordinator --query "imageDetails[?imageTags[?(@ == 'latest')]].imageTags" --output text || true)
+          if [ -n "$LATEST_IMAGE_EXISTS" ]; then
+            echo "Found latest image."
+            echo "LATEST_IMAGE_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "No latest image found."
+            echo "LATEST_IMAGE_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Check for existing backup image
+        id: check_backup
+        run: |
+          BACKUP_IMAGE_EXISTS=$(aws ecr describe-images --repository-name neotzc/simulator-coordinator --query "imageDetails[?imageTags[?(@ == 'backup')]].imageTags" --output text || true)
+          if [ -n "$BACKUP_IMAGE_EXISTS" ]; then
+            echo "Backup image found. Removing old backup image."
+            IMAGE_DIGEST=$(aws ecr describe-images --repository-name neotzc/simulator-coordinator --query "imageDetails[?imageTags[?(@ == 'backup')]].imageDigest" --output text)
+            aws ecr batch-delete-image --repository-name neotzc/simulator-coordinator --image-ids imageDigest=$IMAGE_DIGEST || exit 1
+          else
+            echo "No existing backup image found."
+          fi
+
+      - name: Tag latest as backup and push backup image
+        if: env.LATEST_IMAGE_EXISTS == 'true'
+        run: |
+          docker pull 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest
+          docker tag 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:backup
+          docker push 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:backup || exit 1
+
+      - name: Build and Push Docker image as Latest
+        run: |
+          docker build -f ./Dockerfile -t 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest .
+          docker push 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest || exit 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-tag
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Set up kubeconfig for EKS
+      - name: Set up kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+
+      # Deploy to EKS using kubectl and apply the deployment.yaml file
+      - name: Apply deployment to EKS
+        run: |
+          kubectl apply -f k8s/tzc-simulator-coordinator-deployment.yml
+
+      # Check the status of the deployment
+      - name: Check Deployment Status
+        run: |
+          kubectl rollout restart deployment/tzc-simulator-coordinator-deployment -n ${{ secrets.NAMESPACE }}
+          kubectl rollout status deployment/tzc-simulator-coordinator-deployment -n ${{ secrets.NAMESPACE }}

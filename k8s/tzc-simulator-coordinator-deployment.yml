@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tzc-simulator-coordinator-deployment
+  namespace: tzc-test-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tzc-simulator-coordinator
+  template:
+    metadata:
+      labels:
+        app: tzc-simulator-coordinator
+    spec:
+      containers:
+      - name: tzc-simulator-coordinator-container
+        image: 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4242
+        resources:
+          requests:
+            cpu: "100m"        # 100 milliCPU, which is 0.1 CPU core
+            memory: "128Mi"    # 128 MiB of memory
+          limits:
+            cpu: "500m"        # 500 milliCPU, which is 0.5 CPU core
+            memory: "256Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tzc-simulator-coordinator-service
+  namespace: tzc-test-ns
+spec:
+  selector:
+    app: tzc-simulator-coordinator
+  ports:
+    - protocol: TCP
+      port: 4242
+      targetPort: 4242
+  
