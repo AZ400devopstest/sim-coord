@@ -5,27 +5,22 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
+import net.neology.tolling.tzc.simulator.configuration.TcpClientConfiguration;
 import net.neology.tolling.tzc.simulator.pojo.VehicleData;
-import net.neology.tolling.tzc.simulator.repository.InMemoryVehicleDataRepository;
 import net.neology.tolling.tzc.simulator.repository.VehicleDataRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.scheduling.TaskScheduler;
+import org.springframework.messaging.MessagingException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.TextMessage;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,29 +29,40 @@ import java.util.Optional;
 public class CoordinatorService {
 
     private static final String DEFAULT_DATA_FILE_NAME = "VehicleSimulationData.csv";
-    private static final Integer MAX_RETRY_COUNT = 2;
-    private static final Integer RETRY_SLEEP_MS = 500;
 
     // TODO: Revisit and load runtime parameters from config file
-    @Value("${simulators.pixi.autostart:false}")
-    private Boolean autoStart;
     @Value("${simulators.pixi.files.name:VehicleSimulationData.csv}")
     private String fileName;
     @Value("${simulators.pixi.files.path:~/tmp/}")
     private String filePath;
-    @Value("${simulators.pixi.server.host:localhost}")
-    private String pixiServerHost;
-    @Value("${simulators.pixi.server.port:1234}")
-    private String pixiServerPort;
 
+    @Value("${simulators.pixi.server.host:localhost}")
+    private String serverHost;
+    @Value("${simulators.pixi.server.port:1234}")
+    private int serverPort;
+
+    private final TcpClientConfiguration.ToTcp toTcp;
     private final ObjectMapper jacksonObjectMapper;
-    private final TaskScheduler taskScheduler;
     private final VehicleDataRepository vehicleDataRepository;
 
-    public CoordinatorService(ObjectMapper mapper, TaskScheduler scheduler) {
-        this.jacksonObjectMapper = mapper;
-        this.taskScheduler = scheduler;
-        this.vehicleDataRepository = new InMemoryVehicleDataRepository();
+    public CoordinatorService(
+            TcpClientConfiguration.ToTcp toTcp,
+            ObjectMapper jacksonObjectMapper,
+            VehicleDataRepository vehicleDataRepository) {
+
+        this.toTcp = toTcp;
+        this.jacksonObjectMapper = jacksonObjectMapper;
+        this.vehicleDataRepository = vehicleDataRepository;
+    }
+
+    // TODO:
+    public void broadcastToClients(String input) {
+        log.info("Broadcasting message: {}", input);
+        try {
+            toTcp.send(input, serverHost, serverPort);
+        } catch (MessagingException ex) {
+            log.warn("Unexpected exception caught: {}", ex.getMessage(), ex);
+        }
     }
 
     public Integer checkQueueSize() {
@@ -75,6 +81,14 @@ public class CoordinatorService {
 
     public void sendMessagesNow() {
         log.info("sendMessagesNow..");
+        queueMessagesFromFile(fileName);
+        sendMessages();
+    }
+
+    @Scheduled(cron = "${scheduling.default.cron:0 */1 * * * ?}")
+    public void scheduledSendMessages() {
+        log.info("scheduledSendMessages...");
+        queueMessagesFromFile(fileName);
         sendMessages();
     }
 
@@ -165,93 +179,19 @@ public class CoordinatorService {
         }
     }
 
-    private void queueMessage(VehicleData vehicleData) {
-        log.info("Server queues message: [{}]", vehicleData);
-        vehicleDataRepository.save(vehicleData);
-    }
-
     // pull all messages from the "repository" (queue) and schedule them
     private void sendMessages() {
-        vehicleDataRepository.findAll().forEach(this::scheduleMessage);
+        sendMessages(vehicleDataRepository.findAll());
     }
 
-    // send the message to all active websocket sessions
-    protected void sendMessage(TextMessage message) {
-        log.info(
-                "Server sending message to destination [{}] with payload: \n[{}]",
-                pixiServerHost + ":" + pixiServerPort,
-                message.getPayload()
-        );
-        try (Socket socket = createClientSocket(pixiServerHost, Integer.parseInt(pixiServerPort))) {
-            socket.getOutputStream().write(message.getPayload().getBytes());
-        } catch (IOException ex) {
-            // TODO: retry once?
-            log.warn(
-                    "Failed to send message to destination [{}]",
-                    pixiServerHost + ":" + pixiServerPort,
-                    ex
-            );
-        }
-    }
-
-    private Socket createClientSocket(String host, int port) throws IOException {
-        int retryCount = 0;
-        while (retryCount < MAX_RETRY_COUNT) {
+    private void sendMessages(List<VehicleData> vehicleDataList) {
+        vehicleDataList.forEach(vehicleData -> {
             try {
-                return new Socket(pixiServerHost, Integer.parseInt(pixiServerPort));
-            } catch (UnknownHostException ex) {
-                throw new IOException("Unknown host: " + pixiServerHost, ex);
-            } catch (SocketException ex) {
-                log.debug("Connection failed.." + ex.getMessage());
-                retryCount++;
-                if (retryCount < MAX_RETRY_COUNT) {
-                    log.debug("Will retry after {}ms..", RETRY_SLEEP_MS);
-                    try {
-                        Thread.sleep(RETRY_SLEEP_MS);
-                    } catch (InterruptedException interruptedException) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Socket connection thread interrupted while sleeping/retrying", interruptedException);
-                    }
-                }
+                broadcastToClients(jacksonObjectMapper.writeValueAsString(vehicleData));
+            } catch (JsonProcessingException ex) {
+                log.warn("Unexpected error while converting object to JSON string: {}", vehicleData, ex);
             }
-
-        }
-        throw new IOException("Socket connection refused after exhausting configured retry attempts..");
-    }
-
-//    private void scheduleMessages(List<VehicleData> vehicleData) {
-//        // TODO: parse and remove the first token, delayTime
-//        int delay = Integer.parseInt(vehicleData.timeDelay());
-//        try {
-//            String jsonPayload = jacksonObjectMapper.writeValueAsString(vehicleData);
-//            TextMessage textMessage = new TextMessage(jsonPayload);
-//            taskScheduler.schedule(() -> sendMessage(textMessage), Instant.now().plusMillis(delay));
-//        } catch (JsonProcessingException ex) {
-//            log.error("Unexpected exception while serializing to JSON, object: [{}]", vehicleData, ex);
-//            // TODO: do anything?
-//        }
-//    }
-
-    private void scheduleMessage(VehicleData vehicleData) {
-        int delay = Integer.parseInt(vehicleData.timeDelay());
-        try {
-            String jsonPayload = jacksonObjectMapper.writeValueAsString(vehicleData);
-            TextMessage textMessage = new TextMessage(jsonPayload);
-            taskScheduler.schedule(() -> sendMessage(textMessage), Instant.now().plusMillis(delay));
-        } catch (JsonProcessingException ex) {
-            log.error("Unexpected exception while serializing to JSON, object: [{}]", vehicleData, ex);
-            // TODO: do anything?
-        }
-    }
-
-    @PostConstruct
-    private void init() {
-        if (autoStart) {
-            queueMessagesFromFile(DEFAULT_DATA_FILE_NAME);
-            // TODO: Load the data file as defined in config, defaulting to VehicleSimulationData.csv on the classpath
-            // TODO: i.e. first try to find FileResource, then ClasspathResource if no joy
-            sendMessages();
-        }
+        });
     }
 
     // TODO: Refactor once the schema has been established/agreed upon

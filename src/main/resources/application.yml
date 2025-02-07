@@ -2,9 +2,13 @@ spring:
   application:
     name: tzc-simulator-coordinator
 
+logging:
+  level:
+    org.springframework.integration: DEBUG
+
 scheduling:
   default:
-    cron: 0 */1 * * * ?
+    cron: '-'
 
 server:
   port: 4242
