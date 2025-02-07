@@ -15,8 +15,8 @@ simulators:
   pixi:
     autostart: false
     files:
-      path: 'c:\dev\tmp\'
+      path: '../src/main/resources/'
       name: 'VehicleSimulationData.csv'
     server:
-      host: localhost
-      port: 2424
+      host: pixi-sim-service
+      port: 3380
