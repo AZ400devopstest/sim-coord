@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
+import net.neology.tolling.tzc.simulator.configuration.SimulatorClientConfig;
 import net.neology.tolling.tzc.simulator.configuration.TcpClientConfiguration;
 import net.neology.tolling.tzc.simulator.pojo.VehicleData;
 import net.neology.tolling.tzc.simulator.repository.VehicleDataRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
@@ -24,22 +27,22 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
+import static net.neology.tolling.tzc.simulator.configuration.TcpClientConfiguration.DEFAULT_DATA_FILE_NAME;
+
 @Log4j2
 @Service
 public class CoordinatorService {
 
-    private static final String DEFAULT_DATA_FILE_NAME = "VehicleSimulationData.csv";
+    // TODO: Implement spring-integration flow for file loading --> save to repository --> retrieve from repository --> send to simulators via TCP
 
-    // TODO: Revisit and load runtime parameters from config file
-    @Value("${simulators.pixi.files.name:VehicleSimulationData.csv}")
+    // TODO: Additional options for defaults?
+    @Value("${simulators.files.name:#{tcpClientConfiguration.DEFAULT_DATA_FILE_NAME}}")
     private String fileName;
-    @Value("${simulators.pixi.files.path:~/tmp/}")
+    @Value("${simulators.files.path:}")
     private String filePath;
 
-    @Value("${simulators.pixi.server.host:localhost}")
-    private String serverHost;
-    @Value("${simulators.pixi.server.port:1234}")
-    private int serverPort;
+    @Autowired
+    private SimulatorClientConfig simulatorServers;
 
     private final TcpClientConfiguration.ToTcp toTcp;
     private final ObjectMapper jacksonObjectMapper;
@@ -55,11 +58,22 @@ public class CoordinatorService {
         this.vehicleDataRepository = vehicleDataRepository;
     }
 
+    @PostConstruct
+    public void init() {
+        if (this.simulatorServers.getClients() == null) {
+            log.warn("Simulator servers not configured, initializing to defaults..");
+            this.simulatorServers.setClients(List.of(new String[]{"localhost:4321", "localhost:8765"}));
+        }
+    }
+
     // TODO:
     public void broadcastToClients(String input) {
         log.info("Broadcasting message: {}", input);
         try {
-            toTcp.send(input, serverHost, serverPort);
+            // TODO: Revisit and handle this differently -- write the input String to a @ServiceActivator method that passes the message along to the input channels of all configured toTcp instances, one for each SimulatorServer?
+            simulatorServers.getClients().forEach(
+                    sim -> toTcp.send(input, sim.split(":")[0], Integer.parseInt(sim.split(":")[1])));
+            // TODO: Also need to revisit the line above because it will fail the whole thing if one client isn't available
         } catch (MessagingException ex) {
             log.warn("Unexpected exception caught: {}", ex.getMessage(), ex);
         }
@@ -140,7 +154,7 @@ public class CoordinatorService {
         @param fileName the name of the file to load
     */
     private File locateFile(String fileName) {
-        return loadFileFromFileSystem(filePath + fileName)
+        return loadFileFromFileSystem(filePath + File.separator + fileName)
                 .or(() -> loadFileFromClasspath(fileName))
                 .or(this::loadDefaultFileFromClasspath)
                 .orElseThrow(() -> new RuntimeException("message about failed to find file")); // TODO: More informative message, handle in the scheduled exception handler?
@@ -169,7 +183,7 @@ public class CoordinatorService {
     }
 
     private Optional<File> loadDefaultFileFromClasspath() {
-        log.debug("Checking classpath for default data file [{}] as a last resort..", DEFAULT_DATA_FILE_NAME);
+        log.debug("Checking classpath for default data file as a last resort..");
         ClassPathResource classPathResource = new ClassPathResource("classpath:" + DEFAULT_DATA_FILE_NAME);
         try {
             return Optional.of(classPathResource.getFile());

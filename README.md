@@ -15,19 +15,18 @@ TODO:
 
 ```yaml
 server:
-   port: 1234 -- the port used to send commands to the application via HTTP
+   port: 1234 -- the port used to send commands to the application controller via HTTP
    servlet:
       context-path: /simulators -- the base path for the application controller
 
 simulators:
-    pixi:
-      autostart: 'true/false' -- should the application immediately load a file and start transmitting to simulators?
-      files:
-        path: '/some/valid/filesystem/directory/' (or 'C:\some\valid\directory\'  -- where on the filesystem can the application find its input file(s)?
-        name: 'SomeValidFileName.csv' -- the name of the file that the application should load and transmit to simulators
-    server:
-      host: 'localhost' -- the hostname of the pixi simulator which should receive data
-      port: 5678 -- the port on which the pixi simulator is listening for TCP traffic
+  files:
+     path: '${TZC_SIM_DATA_PATH:../some/valid/directory}' -- (or 'C:\some\valid\directory') where on the filesystem can the application find its input file(s)?
+     name: '${TZC_SIM_DATA_FILE:SomeValidFilename.csv}' -- the name of the file that the application should load and transmit to simulators, found either at `files.path` or on the classpath; leave this blank if you want to use the file that was packaged with the jar
+  clients: [ -- a list of strings in the format `'$HOSTNAME:$PORT'` where `$HOSTNAME` == the IP address or host of a downstream simulator and `$PORT` == the port on which the downstream simulator is listening for TCP traffic
+     '${TZC_SIM_URL_0:localhost:1234}', -- if no environment or command line variable is set for `$TZC_SIM_URL_0` then the default `'localhost:1234'` will be used instead
+     '${TZC_SIM_URL_1:localhost:5678}' -- add or remove lines as needed to publish simulated TZC transactions to additional downstream simulators
+  ]
 ```
    
 ## 2. Build the runnable jar (or start the application via run config in your IDE): `mvn clean package`
@@ -50,22 +49,29 @@ mvn clean package
 
 ## 3. Start the application: `java -jar tzc-simulator-coordinator-1.0.jar`
    
-It is currently configured to broadcast all queued messages every minute to all connected clients.
-Messages are not currently stored between executions of the jar, and the in-memory data structure is a queue on purpose.
-It can be easily refilled by calling the `POST` endpoint.
+It is currently configured to startup, load the data from the configured input file, and immediately transmit
+to all configured downstream simulators.  For example, using the default configuration found in `application.yml`:
+1. Try to read file named `VehicleSimulationData.csv` from `../src/main/resources` on the filesystem.
+2. Try to publish all records from the input file to two downstream simulators, both running on `localhost` and listening for TCP traffic on ports `1234` and `5678` respectively
+3. Shutdown
 
-To find out how many messages are currently queued:
-`curl -X GET localhost:4242/simulators/api/coordinator`
+## 4. Other ways to configure
 
-To read and queue messages from a file (e.g. VehicleSimulationData.csv):
-`curl -X POST localhost:4242/simulators/api/coordinator/loadFromFile/VehicleSimulationData.csv`
-* note that the application will look for the file in the location defined in application.yml
+* Using command line arguments:
+  -- note that the `clients` element is a list and must have the index of each element specified if configured this way
+ ```shell
+   java -jar tzc-simulator-coordinator-1.0.jar --simulators.files.path=C:\\dev\\tmp --simulators.files.name=VehicleSimulationData.csv --simulators.clients[0]=localhost:9999 --simulators.clients[1]=localhost:8888
+  ```
 
-To broadcast all queued messages immediately:
-`curl -X PUT localhost:4242/simulators/api/coordinator`
+* Using a different `application.yml` file: place the file in the same directory as the jar   
 
-To change the filesystem location (directory) where the application checks for input files:
-`curl -X PUT localhost:4242/simulators/api/coordinator/newFilePath -d "newFilePath=/some/valid/directory"`
+* Using system/environment variables:
+   1. Configure a variable for the desired config parameter, e.g.:
+      `export TZC_SIM_DATA_PATH=/some/valid/directory; java -jar tzc-simulator-coordinator-1.0.jar` -- the app will look in `/some/valid/directory` for input files
+      `export TZC_SIM_DATA_FILE=SomeOtherFileName.csv; java -jar tzc-simulator-coordinator-1.0.jar` -- the app load the file named `SomeOtherFileName.csv`
+   2. Alternatively you can set the variable names immediately before the java command:
+      `TZC_SIM_DATA_PATH=/some/valid/directory TZC_SIM_DATA_FILE=SomeOtherFileName.csv TZC_SIM_URL_0=localhost:9999 TZC_SIM_URL_1=localhost:8888 java -jar tzc-coordinator-1.0.jar`
+
 
 sudo apt install curl zip
 

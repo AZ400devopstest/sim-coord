@@ -4,7 +4,7 @@ spring:
 
 logging:
   level:
-    org.springframework.integration: DEBUG
+    org.springframework.integration: INFO
 
 scheduling:
   default:
@@ -16,11 +16,10 @@ server:
     context-path: /simulators
 
 simulators:
-  pixi:
-    autostart: false
-    files:
-      path: '../src/main/resources/'
-      name: 'VehicleSimulationData.csv'
-    server:
-      host: pixi-sim-service
-      port: 3380
+  files:
+    path: '${TZC_SIM_DATA_PATH:../src/main/resources}'
+    name: '${TZC_SIM_DATA_FILE:VehicleSimulationData.csv}'
+  clients: [
+    '${TZC_SIM_URL_0:localhost:1234}',
+    '${TZC_SIM_URL_1:localhost:5678}'
+  ]
