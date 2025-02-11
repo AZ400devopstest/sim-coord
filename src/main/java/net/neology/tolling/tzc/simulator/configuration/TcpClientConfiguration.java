@@ -9,6 +9,7 @@ import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.ip.tcp.TcpReceivingChannelAdapter;
 import org.springframework.integration.ip.tcp.connection.TcpNetServerConnectionFactory;
+import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.handler.annotation.Header;
 
 
@@ -22,7 +23,7 @@ public class TcpClientConfiguration {
     @MessagingGateway(defaultRequestChannel = "toTcp.input")
     public interface ToTcp {
 
-        void send(String data, @Header("host") String host, @Header("port") int port);
+        void send(String data, @Header("host") String host, @Header("port") int port) throws MessagingException;
 
     }
 

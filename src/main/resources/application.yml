@@ -17,9 +17,10 @@ server:
 
 simulators:
   files:
-    path: '${TZC_SIM_DATA_PATH:../src/main/resources}'
+    path: '${TZC_SIM_DATA_PATH:C:\\dev\\tmp}'
     name: '${TZC_SIM_DATA_FILE:VehicleSimulationData.csv}'
   clients: [
-    '${TZC_SIM_URL_0:localhost:1234}',
-    '${TZC_SIM_URL_1:localhost:5678}'
+    '${TZC_SIM_URL_0:localhost:9999}',
+    '${TZC_SIM_URL_1:localhost:5678}',
+    'localhost:8888'
   ]

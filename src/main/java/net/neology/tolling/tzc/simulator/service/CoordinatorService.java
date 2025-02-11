@@ -69,16 +69,17 @@ public class CoordinatorService {
     // TODO:
     public void broadcastToClients(String input) {
         log.info("Broadcasting message: {}", input);
-        try {
-            // TODO: Revisit and handle this differently -- write the input String to a @ServiceActivator method that passes the message along to the input channels of all configured toTcp instances, one for each SimulatorServer?
-            simulatorServers.getClients().forEach(
-                    sim -> toTcp.send(input, sim.split(":")[0], Integer.parseInt(sim.split(":")[1])));
-            // TODO: Also need to revisit the line above because it will fail the whole thing if one client isn't available
-        } catch (MessagingException ex) {
-            log.warn("Unexpected exception caught: {}", ex.getMessage(), ex);
-        }
+        // TODO: Revisit and handle this differently -- write the input String to a @ServiceActivator method that passes the message along to the input channels of all configured toTcp instances, one for each SimulatorServer?
+        simulatorServers.getClients().forEach(
+                sim -> {
+                    try {
+                        toTcp.send(input, sim.split(":")[0], Integer.parseInt(sim.split(":")[1]));
+                    } catch (MessagingException ex) {
+                        log.warn("Exception caught: {}\n", ex.getMessage(), ex);
+                    }
+                });
+        // TODO: Also need to revisit the line above because it will fail the whole thing if one client isn't available
     }
-
     public Integer checkQueueSize() {
         return vehicleDataRepository.currentSize();
     }

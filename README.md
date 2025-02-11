@@ -47,7 +47,8 @@ mvn clean package
 [INFO] ------------------------------------------------------------------------
 ```
 
-## 3. Start the application: `java -jar tzc-simulator-coordinator-1.0.jar`
+## 3. Start the application: 
+`$ java -jar tzc-simulator-coordinator-1.0.jar`
    
 It is currently configured to startup, load the data from the configured input file, and immediately transmit
 to all configured downstream simulators.  For example, using the default configuration found in `application.yml`:
@@ -57,20 +58,30 @@ to all configured downstream simulators.  For example, using the default configu
 
 ## 4. Other ways to configure
 
-* Using command line arguments:
-  -- note that the `clients` element is a list and must have the index of each element specified if configured this way
+* #### Using command line arguments:
+  * note that the `clients` element is a list and must have the index of each element specified if configured this way
  ```shell
-   java -jar tzc-simulator-coordinator-1.0.jar --simulators.files.path=C:\\dev\\tmp --simulators.files.name=VehicleSimulationData.csv --simulators.clients[0]=localhost:9999 --simulators.clients[1]=localhost:8888
+   $ java -jar tzc-simulator-coordinator-1.0.jar --simulators.files.path=C:\\dev\\tmp --simulators.files.name=VehicleSimulationData.csv --simulators.clients[0]=localhost:9999 --simulators.clients[1]=localhost:8888
   ```
 
-* Using a different `application.yml` file: place the file in the same directory as the jar   
+* #### Using a different `application.yml` file:
+  * place the file in the same directory as the jar
+  * see this page for details about how springboot apps load config: https://docs.spring.io/spring-boot/reference/features/external-config.html
 
-* Using system/environment variables:
-   1. Configure a variable for the desired config parameter, e.g.:
-      `export TZC_SIM_DATA_PATH=/some/valid/directory; java -jar tzc-simulator-coordinator-1.0.jar` -- the app will look in `/some/valid/directory` for input files
-      `export TZC_SIM_DATA_FILE=SomeOtherFileName.csv; java -jar tzc-simulator-coordinator-1.0.jar` -- the app load the file named `SomeOtherFileName.csv`
-   2. Alternatively you can set the variable names immediately before the java command:
-      `TZC_SIM_DATA_PATH=/some/valid/directory TZC_SIM_DATA_FILE=SomeOtherFileName.csv TZC_SIM_URL_0=localhost:9999 TZC_SIM_URL_1=localhost:8888 java -jar tzc-coordinator-1.0.jar`
+* #### Using system/environment variables:
+   * Configure a variable for the desired config parameter, e.g.:
+      ```shell
+      -- the app will look in '/some/valid/directory' for input files
+      $ export TZC_SIM_DATA_PATH=/some/valid/directory; java -jar tzc-simulator-coordinator-1.0.jar
+      ...
+      -- the app load the file named 'SomeOtherFileName.csv'
+      $ export TZC_SIM_DATA_FILE=SomeOtherFileName.csv; java -jar tzc-simulator-coordinator-1.0.jar
+      ```
+            
+   * Alternatively you can set the variable names immediately before the java command:
+      ```shell
+     TZC_SIM_DATA_PATH=/some/valid/directory TZC_SIM_DATA_FILE=SomeOtherFileName.csv TZC_SIM_URL_0=localhost:9999 TZC_SIM_URL_1=localhost:8888 java -jar tzc-coordinator-1.0.jar
+     ```
 
 
 sudo apt install curl zip
