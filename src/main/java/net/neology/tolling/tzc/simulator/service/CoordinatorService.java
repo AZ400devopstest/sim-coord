@@ -20,7 +20,9 @@ import org.springframework.messaging.MessagingException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +36,8 @@ import static net.neology.tolling.tzc.simulator.configuration.TcpClientConfigura
 public class CoordinatorService {
 
     // TODO: Implement spring-integration flow for file loading --> save to repository --> retrieve from repository --> send to simulators via TCP
+
+    private static final String HEADER_LINE = "timeDelay,facilityId,tollPoint,lane,vehicleId,vehicleClass,confidence,length,width,height,axleCount,speed,direction,plateText,plateReadConfidence,plateNationality,platePlateFinderConfidence,plateXpos,plateWidth,plateYpos,plateHeight,tagId,tid,type,antenna,rssi,txPower,userData";
 
     // TODO: Additional options for defaults?
     @Value("${simulators.files.name:#{tcpClientConfiguration.DEFAULT_DATA_FILE_NAME}}")
@@ -115,13 +119,24 @@ public class CoordinatorService {
         log.info("Server queue messages from file: [{}]", fileName);
         try {
             File sampleFile = locateFile(fileName);
-            CsvMapper mapper = new CsvMapper();
-            try (MappingIterator<VehicleData> iterator =
-                         mapper.readerFor(VehicleData.class)
-                                 .with(CSV_SCHEMA)
-                                 .readValues(sampleFile)
-            ) {
-                queueMessages(iterator.readAll());
+            BufferedReader reader = new BufferedReader(new FileReader(sampleFile));
+            String line = reader.readLine();
+            reader.close();
+            if (line != null) {
+                if (line.equals(HEADER_LINE)) {
+                    CsvMapper mapper = new CsvMapper();
+                    try (MappingIterator<VehicleData> iterator =
+                                 mapper.readerFor(VehicleData.class)
+                                         .with(CsvSchema.emptySchema().withHeader())
+                                         .readValues(sampleFile)
+                    ) {
+                        queueMessages(iterator.readAll());
+                    }
+                } else {
+                    throw new IOException("Invalid header on first line of file: " + line);
+                }
+            } else {
+                throw new IOException("First line was null");
             }
         } catch (IOException ex) {
             log.error("Error occurred while reading from file: [{}]", fileName, ex);
@@ -208,37 +223,4 @@ public class CoordinatorService {
             }
         });
     }
-
-    // TODO: Refactor once the schema has been established/agreed upon
-    private static final CsvSchema CSV_SCHEMA =
-            CsvSchema.builder()
-                    .addColumn("timeDelay", CsvSchema.ColumnType.STRING)
-                    .addColumn("facilityId", CsvSchema.ColumnType.STRING)
-                    .addColumn("tollPoint", CsvSchema.ColumnType.STRING)
-                    .addColumn("lane", CsvSchema.ColumnType.STRING)
-                    .addColumn("vehicleId", CsvSchema.ColumnType.STRING)
-                    .addColumn("vehicleClass", CsvSchema.ColumnType.STRING)
-                    .addColumn("confidence", CsvSchema.ColumnType.STRING)
-                    .addColumn("length", CsvSchema.ColumnType.STRING)
-                    .addColumn("width", CsvSchema.ColumnType.STRING)
-                    .addColumn("height", CsvSchema.ColumnType.STRING)
-                    .addColumn("axleCount", CsvSchema.ColumnType.STRING)
-                    .addColumn("speed", CsvSchema.ColumnType.STRING)
-                    .addColumn("direction", CsvSchema.ColumnType.STRING)
-                    .addColumn("plateText", CsvSchema.ColumnType.STRING)
-                    .addColumn("plateReadConfidence", CsvSchema.ColumnType.STRING)
-                    .addColumn("plateNationality", CsvSchema.ColumnType.STRING)
-                    .addColumn("platePlateFinderConfidence", CsvSchema.ColumnType.STRING)
-                    .addColumn("plateXpos", CsvSchema.ColumnType.STRING)
-                    .addColumn("plateWidth", CsvSchema.ColumnType.STRING)
-                    .addColumn("plateYpos", CsvSchema.ColumnType.STRING)
-                    .addColumn("plateHeight", CsvSchema.ColumnType.STRING)
-                    .addColumn("tagId", CsvSchema.ColumnType.STRING)
-                    .addColumn("tid", CsvSchema.ColumnType.STRING)
-                    .addColumn("tagType", CsvSchema.ColumnType.STRING)
-                    .addColumn("antenna", CsvSchema.ColumnType.STRING)
-                    .addColumn("rssi", CsvSchema.ColumnType.STRING)
-                    .addColumn("txPower", CsvSchema.ColumnType.STRING)
-                    .addColumn("userData", CsvSchema.ColumnType.STRING)
-                    .build().withHeader();
 }

@@ -1,7 +1,5 @@
 package net.neology.tolling.tzc.simulator.pojo;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 //@JsonIgnoreProperties("timeDelay")
 public record VehicleData (
         String timeDelay,
@@ -27,7 +25,7 @@ public record VehicleData (
         String plateHeight,
         String tagId,
         String tid,
-        String tagType,
+        String type,
         String antenna,
         String rssi,
         String txPower,
