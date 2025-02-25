@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history to retain Git blame info
 
       - name: Set up Java
         uses: actions/setup-java@v4
