@@ -1,4 +1,4 @@
-name: Java CI with SonarCloud
+name: Sonar Scan
 
 on:
   push:
