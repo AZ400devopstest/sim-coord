@@ -36,7 +36,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=my_project
-            -Dsonar.organization=my_org
+            -Dsonar.projectKey=AZ400devopstest_sim-coord
+            -Dsonar.organization=az400devopstest
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.java.binaries=target/classes
