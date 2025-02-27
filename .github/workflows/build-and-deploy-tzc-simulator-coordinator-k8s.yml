@@ -84,7 +84,7 @@ jobs:
       # Deploy to EKS using kubectl and apply the deployment.yaml file
       - name: Apply deployment to EKS
         run: |
-          kubectl apply -f k8s/tzc-simulator-coordinator-deployment.yml
+          kubectl apply -f k8s/tzc-simulator-coordinator-job.yml
 
       # Check the status of the deployment
       - name: Check Deployment Status
