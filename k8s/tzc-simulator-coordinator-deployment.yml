@@ -4,12 +4,13 @@ metadata:
   name: tzc-simulator-coordinator-job  # Name of the Job
   namespace: tzc-test-ns  # Namespace where the Job runs
 spec:
+  backoffLimit: 2  # Retries up to 2 times on failure (non-zero exit)
   template:
     metadata:
       labels:
         app: tzc-simulator-coordinator  # Label to identify the Job's pods
     spec:
-      restartPolicy: Never  # Ensures the Job does not restart once completed
+      restartPolicy: Never  # Ensures the Job does not restart within the same pod
       containers:
       - name: tzc-simulator-coordinator-container  # Container name
         image: 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest  # Docker image for the Job
