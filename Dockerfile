@@ -1,5 +1,5 @@
 # Getting base image
-FROM jelastic/maven:3.9.5-openjdk-21
+FROM maven:3.9.5-amazoncorretto-21
 
 # Setting work directory
 WORKDIR /app
@@ -16,5 +16,5 @@ WORKDIR /app/target/
 # Expose the required port
 EXPOSE 4242
 
-# Coomand to run the tzc-coordinator application
-ENTRYPOINT ["java", "-jar", "tzc-simulator-coordinator-1.0.jar"]
+# Define the command to run tzc-simulator-coordinator application with the config file
+CMD ["java", "-jar", "tzc-simulator-coordinator-1.0.jar", "--spring.config.location=../src/main/resources/", "--spring.config.name=k8s-config", "run"]
