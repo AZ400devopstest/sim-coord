@@ -94,5 +94,4 @@ jobs:
       # Monitor Job completion and fetch logs if it fails
       - name: Check Job Status
         run: |
-          kubectl wait --for=condition=complete job/tzc-simulator-coordinator-job -n ${{ secrets.NAMESPACE }} --timeout=300s || kubectl logs job/tzc-simulator-coordinator-job -n ${{ secrets.NAMESPACE }}
-
+          kubectl wait --for=condition=complete job/tzc-simulator-coordinator-job -n ${{ secrets.NAMESPACE }} --timeout=300s || (kubectl logs -l job-name=tzc-simulator-coordinator-job -n ${{ secrets.NAMESPACE }} && exit 1)
