@@ -81,13 +81,18 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ secrets.CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
 
-      # Deploy to EKS using kubectl and apply the deployment.yaml file
-      - name: Apply deployment to EKS
+      # Delete old Job (if it exists) to ensure a fresh run
+      - name: Delete old Job (if exists)
         run: |
-          kubectl apply -f k8s/tzc-simulator-coordinator-job.yml
+          kubectl delete job tzc-simulator-coordinator-job -n ${{ secrets.NAMESPACE }} --ignore-not-found=true
 
-      # Check the status of the deployment
-      - name: Check Deployment Status
+      # Deploy the new Job
+      - name: Apply Job to EKS
         run: |
-          kubectl rollout restart deployment/tzc-simulator-coordinator-deployment -n ${{ secrets.NAMESPACE }}
-          kubectl rollout status deployment/tzc-simulator-coordinator-deployment -n ${{ secrets.NAMESPACE }}
+         kubectl apply -f k8s/tzc-simulator-coordinator-job.yml
+
+      # Monitor Job completion and fetch logs if it fails
+      - name: Check Job Status
+        run: |
+          kubectl wait --for=condition=complete job/tzc-simulator-coordinator-job -n ${{ secrets.NAMESPACE }} --timeout=300s || kubectl logs job/tzc-simulator-coordinator-job -n ${{ secrets.NAMESPACE }}
+
