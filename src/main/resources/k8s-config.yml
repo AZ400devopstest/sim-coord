@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: tzc-simulator-coordinator
+
+logging:
+  level:
+    org.springframework.integration: INFO
+
+scheduling:
+  default:
+    cron: '-'
+
+server:
+  port: 4242
+  servlet:
+    context-path: /simulators
+
+simulators:
+  files:
+    path: '${TZC_SIM_DATA_PATH:../src/main/resources}'
+    name: '${TZC_SIM_DATA_FILE:VehicleSimulationData.csv}'
+  clients: [
+    ]
