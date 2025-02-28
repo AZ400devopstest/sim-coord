@@ -1,11 +1,9 @@
 # Getting base image
 FROM maven:3.9.5-amazoncorretto-21
 
-# Install AWS CLI
-RUN apt-get update && apt-get install -y \
-    awscli \
-    && rm -rf /var/lib/apt/lists/*
-    
+# Install AWS CLI for Alpine-based images
+RUN apk add --no-cache aws-cli
+
 # Setting work directory
 WORKDIR /app
 
