@@ -1,4 +1,4 @@
-apiVersion: batch/v1
+aapiVersion: batch/v1
 kind: Job
 metadata:
   name: tzc-simulator-coordinator-job
@@ -13,12 +13,14 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            mkdir -p /mnt/shared
-            aws s3 cp s3://vehicle-sim-data-temp/VehicleSimulationData.csv /mnt/shared/VehicleSimulationData.csv
+            # Download the latest vehicle simulation data from S3 and replace the existing file
+            aws s3 cp s3://vehicle-sim-data-temp/VehicleSimulationData.csv /app/src/main/resources/VehicleSimulationData.csv --overwrite
+
+            # Run the application and log output
             java -jar /app/target/tzc-simulator-coordinator-1.0.jar \
-              --simulators.files.path=/mnt/shared \
-              --simulators.files.name=VehicleSimulationData.csv | tee -a /var/log/tzc-sim-coordinator.log;
-            
+              --spring.config.location=../src/main/resources/ \
+              --spring.config.name=k8s-config run | tee -a /var/log/tzc-simulator.log;
+
             # Upload logs after the Job completes
             TIMESTAMP=$(date +%Y%m%d-%H%M%S);
             GZFILE=/tmp/coordinator-logs-$TIMESTAMP.log.gz;
