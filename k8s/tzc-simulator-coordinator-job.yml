@@ -28,6 +28,22 @@ spec:
           limits:
             cpu: "500m"
             memory: "256Mi"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "
+                TIMESTAMP=$(date +%Y%m%d-%H%M%S);
+                GZFILE=/tmp/sim-coordinator-$TIMESTAMP.log.gz;
+                if [ -f /var/log/tzc-simulator.log ]; then
+                  gzip -c /var/log/tzc-simulator.log > $GZFILE;
+                  aws s3 cp $GZFILE s3://k8s-tzc-logs/logs/;
+                else
+                  LOGMSG='Log file not found, skipping compression and upload.';
+                  echo $LOGMSG;
+                  echo $LOGMSG | aws s3 cp - s3://k8s-tzc-logs/logs/prestop-$TIMESTAMP.log;
+                fi
+              "]
+
 
 ---
 apiVersion: v1
