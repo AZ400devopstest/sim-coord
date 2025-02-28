@@ -4,45 +4,27 @@ metadata:
   name: tzc-simulator-coordinator-job
   namespace: tzc-test-ns
 spec:
-  backoffLimit: 2
   template:
-    metadata:
-      labels:
-        app: tzc-simulator-coordinator
     spec:
       restartPolicy: Never
       containers:
       - name: tzc-simulator-coordinator-container
         image: 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest
-        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
         args:
-          - "/bin/bash"
-          - "-c"
-          - "java -jar /app/target/tzc-simulator-coordinator-1.0.jar --spring.config.location=../src/main/resources/ --spring.config.name=k8s-config run | tee -a /var/log/tzc-simulator.log"
-        ports:
-          - containerPort: 4242
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-          limits:
-            cpu: "500m"
-            memory: "256Mi"
-        lifecycle:
-          preStop:
-            exec:
-              command: ["/bin/sh", "-c", "
-                TIMESTAMP=$(date +%Y%m%d-%H%M%S);
-                GZFILE=/tmp/sim-coordinator-$TIMESTAMP.log.gz;
-                if [ -f /var/log/tzc-simulator.log ]; then
-                  gzip -c /var/log/tzc-simulator.log > $GZFILE;
-                  aws s3 cp $GZFILE s3://k8s-tzc-logs/logs/;
-                else
-                  LOGMSG='Log file not found, skipping compression and upload.';
-                  echo $LOGMSG;
-                  echo $LOGMSG | aws s3 cp - s3://k8s-tzc-logs/logs/prestop-$TIMESTAMP.log;
-                fi
-              "]
+          - |
+            java -jar /app/target/tzc-simulator-coordinator-1.0.jar --spring.config.location=../src/main/resources/ --spring.config.name=k8s-config run | tee -a /var/log/tzc-simulator.log;
+            
+            # Upload logs after the Job completes
+            TIMESTAMP=$(date +%Y%m%d-%H%M%S);
+            GZFILE=/tmp/sim-coordinator-logs-$TIMESTAMP.log.gz;
+            if [ -f /var/log/tzc-simulator.log ]; then
+              gzip -c /var/log/tzc-simulator.log > $GZFILE;
+              aws s3 cp $GZFILE s3://k8s-tzc-logs/logs/;
+            else
+              echo 'Log file not found, skipping upload.';
+            fi
+
 
 
 ---
