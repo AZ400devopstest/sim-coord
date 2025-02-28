@@ -1,29 +1,33 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: tzc-simulator-coordinator-job  # Name of the Job
-  namespace: tzc-test-ns  # Namespace where the Job runs
+  name: tzc-simulator-coordinator-job
+  namespace: tzc-test-ns
 spec:
-  backoffLimit: 2  # Retries up to 2 times on failure (non-zero exit)
+  backoffLimit: 2
   template:
     metadata:
       labels:
-        app: tzc-simulator-coordinator  # Label to identify the Job's pods
+        app: tzc-simulator-coordinator
     spec:
-      restartPolicy: Never  # Ensures the Job does not restart within the same pod
+      restartPolicy: Never
       containers:
-      - name: tzc-simulator-coordinator-container  # Container name
-        image: 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest  # Docker image for the Job
-        imagePullPolicy: Always  # Always pull the latest image before running
+      - name: tzc-simulator-coordinator-container
+        image: 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest
+        imagePullPolicy: Always
+        args:
+          - "/bin/bash"
+          - "-c"
+          - "java -jar /app/target/tzc-simulator-coordinator-1.0.jar --spring.config.location=../src/main/resources/ --spring.config.name=k8s-config run | tee -a /var/log/tzc-simulator.log"
         ports:
-        - containerPort: 4242  # Port exposed inside the container
+          - containerPort: 4242
         resources:
           requests:
-            cpu: "100m"        # Minimum CPU guaranteed for the container (0.1 core)
-            memory: "128Mi"    # Minimum memory guaranteed for the container (128 MiB)
+            cpu: "100m"
+            memory: "128Mi"
           limits:
-            cpu: "500m"        # Maximum CPU the container can use (0.5 core)
-            memory: "256Mi"    # Maximum memory the container can use (256 MiB)
+            cpu: "500m"
+            memory: "256Mi"
 
 ---
 apiVersion: v1
