@@ -1,8 +1,8 @@
 # Getting base image
 FROM maven:3.9.5-amazoncorretto-21
 
-# Install AWS CLI for Alpine-based images
-RUN apk add --no-cache aws-cli
+# Install AWS CLI for Amazon Linux-based images
+RUN dnf install -y awscli && dnf clean all
 
 # Setting work directory
 WORKDIR /app
