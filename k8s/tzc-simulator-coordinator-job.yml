@@ -13,17 +13,18 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            java -jar /app/target/tzc-simulator-coordinator-1.0.jar --spring.config.location=../src/main/resources/ --spring.config.name=k8s-config run | tee -a /var/log/tzc-simulator.log;
+            java -jar /app/target/tzc-simulator-coordinator-1.0.jar --spring.config.location=../src/main/resources/ --spring.config.name=k8s-config run | tee -a /var/log/tzc-sim-coordinator.log;
             
             # Upload logs after the Job completes
             TIMESTAMP=$(date +%Y%m%d-%H%M%S);
-            GZFILE=/tmp/sim-coordinator-logs-$TIMESTAMP.log.gz;
-            if [ -f /var/log/tzc-simulator.log ]; then
-              gzip -c /var/log/tzc-simulator.log > $GZFILE;
+            GZFILE=/tmp/coordinator-logs-$TIMESTAMP.log.gz;
+            if [ -f /var/log/tzc-sim-coordinator.log ]; then
+              gzip -c /var/log/tzc-sim-coordinator.log > $GZFILE;
               aws s3 cp $GZFILE s3://k8s-tzc-logs/logs/;
             else
               echo 'Log file not found, skipping upload.';
             fi
+
 
 
 
