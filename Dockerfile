@@ -2,7 +2,7 @@
 FROM maven:3.9.5-amazoncorretto-21
 
 # Install AWS CLI for Amazon Linux-based images
-RUN dnf install -y awscli && dnf clean all
+RUN yum install -y aws-cli && yum clean all
 
 # Setting work directory
 WORKDIR /app
