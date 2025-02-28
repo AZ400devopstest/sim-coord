@@ -13,6 +13,7 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
+            sleep 300;  # Keeps pod alive for 5 mins
             # Download the latest vehicle simulation data from S3 and replace the existing file
             aws s3 cp s3://vehicle-sim-data-temp/VehicleSimulationData.csv /app/src/main/resources/VehicleSimulationData.csv --overwrite
 
