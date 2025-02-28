@@ -13,7 +13,11 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            java -jar /app/target/tzc-simulator-coordinator-1.0.jar --spring.config.location=../src/main/resources/ --spring.config.name=k8s-config run | tee -a /var/log/tzc-sim-coordinator.log;
+            mkdir -p /mnt/shared
+            aws s3 cp s3://vehicle-sim-data-temp/VehicleSimulationData.csv /mnt/shared/VehicleSimulationData.csv
+            java -jar /app/target/tzc-simulator-coordinator-1.0.jar \
+              --simulators.files.path=/mnt/shared \
+              --simulators.files.name=VehicleSimulationData.csv | tee -a /var/log/tzc-sim-coordinator.log;
             
             # Upload logs after the Job completes
             TIMESTAMP=$(date +%Y%m%d-%H%M%S);
@@ -24,9 +28,6 @@ spec:
             else
               echo 'Log file not found, skipping upload.';
             fi
-
-
-
 
 ---
 apiVersion: v1
