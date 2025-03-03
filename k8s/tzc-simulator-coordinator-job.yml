@@ -1,36 +1,37 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: tzc-simulator-coordinator-job
-  namespace: tzc-test-ns
+  name: tzc-simulator-coordinator-job  # Name of the Job
+  namespace: tzc-test-ns  # Namespace where the Job runs
 spec:
+  backoffLimit: 2  # Retries up to 2 times on failure (non-zero exit)
   template:
+    metadata:
+      labels:
+        app: tzc-simulator-coordinator  # Label to identify the Job's pods
     spec:
-      restartPolicy: Never
+      restartPolicy: Never  # Ensures the Job does not restart within the same pod
       containers:
-      - name: tzc-simulator-coordinator-container
-        image: 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest
+      - name: tzc-simulator-coordinator-container  # Container name
+        image: 211125768014.dkr.ecr.us-east-2.amazonaws.com/neotzc/simulator-coordinator:latest  # Docker image for the Job
+        imagePullPolicy: Always  # Always pull the latest image before running
         command: ["/bin/sh", "-c"]
         args:
           - |
-            sleep 300;  # Keeps pod alive for 5 mins
             # Download the latest vehicle simulation data from S3 and replace the existing file
-            aws s3 cp s3://vehicle-sim-data-temp/VehicleSimulationData.csv /app/src/main/resources/VehicleSimulationData.csv --overwrite
+            aws s3 cp s3://vehicle-sim-data-temp/VehicleSimulationData.csv /app/src/main/resources/VehicleSimulationData.csv
 
             # Run the application and log output
             java -jar /app/target/tzc-simulator-coordinator-1.0.jar \
               --spring.config.location=../src/main/resources/ \
-              --spring.config.name=k8s-config run | tee -a /var/log/tzc-simulator.log;
-
-            # Upload logs after the Job completes
-            TIMESTAMP=$(date +%Y%m%d-%H%M%S);
-            GZFILE=/tmp/coordinator-logs-$TIMESTAMP.log.gz;
-            if [ -f /var/log/tzc-sim-coordinator.log ]; then
-              gzip -c /var/log/tzc-sim-coordinator.log > $GZFILE;
-              aws s3 cp $GZFILE s3://k8s-tzc-logs/logs/;
-            else
-              echo 'Log file not found, skipping upload.';
-            fi
+              --spring.config.name=k8s-config run
+        resources:
+          requests:
+            cpu: "100m"        # Minimum CPU guaranteed for the container (0.1 core)
+            memory: "128Mi"    # Minimum memory guaranteed for the container (128 MiB)
+          limits:
+            cpu: "500m"        # Maximum CPU the container can use (0.5 core)
+            memory: "256Mi"    # Maximum memory the container can use (256 MiB)
 
 ---
 apiVersion: v1
